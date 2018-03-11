@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CONFIG>
-  <Compiler Value="C:\codetyphon\fpc\fpc32\bin\i386-win32\fpc.exe" Date="1266068099"/>
-  <Params Value=" -MObjFPC -Scghi -O1 -g -gl -WG -l -vewnhibq &quot;-FiE:\Projekty Lazarusa\FotoCropResize\lib\i386-win32&quot; -FuC:\codetyphon\typhon\components\pl_BGRAcontrols\lib\i386-win32\win32 -FuC:\codetyphon\typhon\components\pl_Graphics32\lib\i386-win32\win32 -FuC:\codetyphon\typhon\components\pl_BGRAbitmap\lib\i386-win32\win32 -FuC:\codetyphon\typhon\components\BaseIdeintf\units\i386-win32\win32 -FuC:\codetyphon\typhon\components\pl_PascalScript\lib\i386-win32\win32 -FuC:\codetyphon\typhon\components\lz_MouseAndKeyinput\lib\i386-win32\win32 -FuC:\codetyphon\typhon\components\BaseControls\lib\i386-win32\win32 -FuC:\codetyphon\typhon\lcl\units\i386-win32\win32 -FuC:\codetyphon\typhon\lcl\units\i386-win32 -FuC:\codetyphon\typhon\components\BaseUtils\lib\i386-win32 -FuC:\codetyphon\typhon\packager\units\i386-win32 &quot;-FuE:\Projekty Lazarusa\FotoCropResize\&quot; &quot;-FUE:\Projekty Lazarusa\FotoCropResize\lib\i386-win32\&quot; -dLCL -dLCLwin32 project1.ppr"/>
-</CONFIG>
