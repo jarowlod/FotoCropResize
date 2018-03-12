@@ -22,16 +22,19 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="3">
+    <RequiredPackages Count="4">
       <Item1>
-        <PackageName Value="pl_bgracontrols"/>
+        <PackageName Value="lz_report"/>
       </Item1>
       <Item2>
-        <PackageName Value="pl_graphics32"/>
+        <PackageName Value="pl_bgracontrols"/>
       </Item2>
       <Item3>
-        <PackageName Value="adLCL"/>
+        <PackageName Value="pl_graphics32"/>
       </Item3>
+      <Item4>
+        <PackageName Value="adLCL"/>
+      </Item4>
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
