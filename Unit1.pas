@@ -68,6 +68,8 @@ type
     procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure Img_1DblClick(Sender: TObject);
+    procedure Img_1MouseEnter(Sender: TObject);
+    procedure Img_1MouseLeave(Sender: TObject);
     procedure Img_1PaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure miClearAllClick(Sender: TObject);
@@ -81,6 +83,7 @@ type
                           img: TImage32;
                           FileName: string;
                         end;
+    DropTarget: TObject;
     procedure ResizeFoto(InputPicture: TBitmap32; OutputImage: TBitmap; const DstWidth, DstHeigth: Integer);
     procedure SetHighQualityStretchFilter(B: TBitmap32);
     procedure TabDodaj(vIndex: integer; vFile: string);
@@ -124,7 +127,7 @@ begin
     tab[i].img.PaintStages[0]^.Stage:= PST_CUSTOM;
     tab[i].FileName:= '';
     tab[i].img.Hint:= 'Brak';
-    //DragAcceptFiles(tab[i].img.Handle, True);
+    DragAcceptFiles(tab[i].img.Handle, True);
   end;
   DragAcceptFiles(ImgView.Handle, True);
 
@@ -181,6 +184,7 @@ begin
   lblFileEdit.Caption      := FileName;
   PathEditFileName         := FileName;
 
+  edIDO.Text:= '';
   btnDodajDoSzablonu.Enabled:= false;
   btnZapiszJako.Enabled     := true;
   btnZaznacz.Enabled        := true;
@@ -307,9 +311,11 @@ begin
       tmp.Assign(ImgView.Bitmap);
     end;
 
+    // TODO: wyświetla okno z porównaniem zdjęć starego z nowym, umożliwia dokonanie wyboru
+
     jpg:= TJPEGImage.Create;
-    jpg.SetSize(tmp.Width, tmp.Height); //jpg.SetSize(ImgView.Bitmap.Width, ImgView.Bitmap.Height);
-    jpg.Canvas.CopyRect(tmp.Canvas.ClipRect, tmp.Canvas, tmp.Canvas.ClipRect);  //jpg.Canvas.CopyRect(Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height), ImgView.Bitmap.Canvas, Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height));
+    jpg.SetSize(tmp.Width, tmp.Height);
+    jpg.Canvas.CopyRect(tmp.Canvas.ClipRect, tmp.Canvas, tmp.Canvas.ClipRect);
     jpg.CompressionQuality := 96;
     jpg.SaveToFile(SaveDialog1.FileName);
 
@@ -344,7 +350,9 @@ end;
 
 procedure TForm1.FormDropFiles(Sender: TObject; const FileNames: array of String);
 begin
-  WczytajZdjecie(FileNames[0]);
+  if not Assigned(DropTarget) then exit;
+  if DropTarget is TImage32 then TabDodaj(TImage32(DropTarget).Tag, FileNames[0]);
+  if DropTarget is TImgView32 then WczytajZdjecie(FileNames[0]);
 end;
 
 procedure TForm1.Img_1DblClick(Sender: TObject);
@@ -353,6 +361,16 @@ begin
   begin
     TabDodaj(TImage32(Sender).Tag, OpenPictureDialog1.FileName);
   end;
+end;
+
+procedure TForm1.Img_1MouseEnter(Sender: TObject);
+begin
+  DropTarget:= Sender;
+end;
+
+procedure TForm1.Img_1MouseLeave(Sender: TObject);
+begin
+  DropTarget:= nil;
 end;
 
 procedure TForm1.Img_1PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);

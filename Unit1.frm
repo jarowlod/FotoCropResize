@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 389
+  Left = 394
   Height = 656
-  Top = 232
+  Top = 225
   Width = 742
   AllowDropFiles = True
   Caption = 'FotoCropResize'
@@ -32,6 +32,8 @@ object Form1: TForm1
     OverSize = 0
     TabOrder = 0
     OnDblClick = ImgViewDblClick
+    OnMouseEnter = Img_1MouseEnter
+    OnMouseLeave = Img_1MouseLeave
     OnPaintStage = ImgViewPaintStage
   end
   object BCPanel2: TBCPanel
@@ -1128,6 +1130,7 @@ object Form1: TForm1
     object btnZapiszDoOTIS: TBCButton
       Left = 0
       Height = 33
+      Hint = 'Zapisuje zdjęcie do bazy zdjęć OTIS. !!!'
       Top = 352
       Width = 112
       StateClicked.Background.Color = clBlack
@@ -1328,6 +1331,7 @@ object Form1: TForm1
       RoundingDropDown.RoundX = 1
       RoundingDropDown.RoundY = 1
       RoundingDropDown.RoundOptions = []
+      ShowHint = True
       TextApplyGlobalOpacity = False
       MemoryUsage = bmuHigh
     end
@@ -1336,6 +1340,7 @@ object Form1: TForm1
       Height = 23
       Top = 320
       Width = 96
+      NumbersOnly = True
       OnChange = edIDOChange
       TabOrder = 0
       TextHint = 'nr IDO'
@@ -1431,6 +1436,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1462,6 +1469,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1493,6 +1502,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1524,6 +1535,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1555,6 +1568,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1586,6 +1601,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1617,6 +1634,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
@@ -1648,6 +1667,8 @@ object Form1: TForm1
         ShowHint = True
         TabOrder = 0
         OnDblClick = Img_1DblClick
+        OnMouseEnter = Img_1MouseEnter
+        OnMouseLeave = Img_1MouseLeave
         OnPaintStage = Img_1PaintStage
       end
     end
