@@ -7,19 +7,21 @@ interface
 uses
   Classes, SysUtils, FileUtil, LR_Class, LR_Desgn, BCPanel, BCButton,
   GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus, ExtDlgs,
-  Buttons, StdCtrls, GR32, GR32_Text_LCL_Win, ShellApi, GR32_Layers, GR32_Blend, JPEGLib;
+  Buttons, StdCtrls, ComCtrls, IniPropStorage, GR32, GR32_Text_LCL_Win,
+  ShellApi, GR32_Layers, GR32_Blend, IniFiles;
 
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
-    BCButton1: TBCButton;
-    BCButton2: TBCButton;
-    BCButton3: TBCButton;
-    BCButton4: TBCButton;
-    BCButton5: TBCButton;
-    BCButton6: TBCButton;
+    btnDrukuj: TBCButton;
+    btnWytnij: TBCButton;
+    btnDodajDoSzablonu: TBCButton;
+    btnWczytajFoto: TBCButton;
+    btnZapiszJako: TBCButton;
+    btnZaznacz: TBCButton;
+    btnEdycjaSzablonu: TBCButton;
     BCPanel1: TBCPanel;
     BCPanel2: TBCPanel;
     frDesigner1: TfrDesigner;
@@ -34,8 +36,9 @@ type
     Img_7: TImage32;
     Img_8: TImage32;
     lblFileEdit: TLabel;
-    MenuItem1: TMenuItem;
-    MenuItem2: TMenuItem;
+    miClear: TMenuItem;
+    miLoadSzablon: TMenuItem;
+    miClearAll: TMenuItem;
     OpenPictureDialog1: TOpenPictureDialog;
     Panel1: TPanel;
     Panel_8: TPanel;
@@ -48,11 +51,12 @@ type
     Panel_7: TPanel;
     PopupMenu1: TPopupMenu;
     SaveDialog1: TSaveDialog;
-    procedure BCButton1Click(Sender: TObject);
-    procedure BCButton2Click(Sender: TObject);
-    procedure BCButton3Click(Sender: TObject);
-    procedure BCButton5Click(Sender: TObject);
-    procedure BCButton6Click(Sender: TObject);
+    procedure btnDodajDoSzablonuClick(Sender: TObject);
+    procedure btnDrukujClick(Sender: TObject);
+    procedure btnWytnijClick(Sender: TObject);
+    procedure btnZapiszJakoClick(Sender: TObject);
+    procedure btnZaznaczClick(Sender: TObject);
+    procedure btnEdycjaSzablonuClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
@@ -62,8 +66,9 @@ type
     procedure Img_1DblClick(Sender: TObject);
     procedure Img_1PaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
-    procedure MenuItem1Click(Sender: TObject);
-    procedure MenuItem2Click(Sender: TObject);
+    procedure miClearAllClick(Sender: TObject);
+    procedure miClearClick(Sender: TObject);
+    procedure miLoadSzablonClick(Sender: TObject);
   private
     CropLayer: TRubberbandLayer;
     EditFileName: string;
@@ -71,6 +76,7 @@ type
                           img: TImage32;
                           FileName: string;
                         end;
+    procedure TabDodaj(vIndex: integer; vFile: string);
     procedure HighlightCropRect(Bmp32: TBitmap32; CropRect: TRect);
     procedure LayerResizing(Sender: TObject; const OldLocation: TFloatRect;
       var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
@@ -94,6 +100,7 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 var i: integer;
+    ini: TIniFile;
 begin
   DragAcceptFiles(Handle, False);
 
@@ -109,6 +116,7 @@ begin
   begin
     tab[i].img.PaintStages[0]^.Stage:= PST_CUSTOM;
     tab[i].FileName:= '';
+    tab[i].img.Hint:= 'Brak';
     DragAcceptFiles(tab[i].img.Handle, True);
   end;
 
@@ -116,11 +124,43 @@ begin
   begin
     if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
   end;
+
+  // wczytujemy ustawienia zapisanej sesji
+  ini:= TIniFile.Create(ExtractFilePath(Application.ExeName)+'config.ini');
+  try
+    for i:=1 to 8 do
+    begin
+      TabDodaj(i, ini.ReadString('Szablon', 'img'+IntToStr(i),'') );
+    end;
+    Left  := ini.ReadInteger('Form', 'Left'  , Left);
+    Top   := ini.ReadInteger('Form', 'Top'   , Top);
+    Width := ini.ReadInteger('Form', 'Width' , Width);
+    Height:= ini.ReadInteger('Form', 'Height', Height);
+  finally
+    FreeAndNil(ini);
+  end;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
+var ini: TIniFile;
+    i: integer;
 begin
   CropLayer:= nil;
+
+  // zapisujemy ustawienia zapisanej sesji
+  ini:= TIniFile.Create(ExtractFilePath(Application.ExeName)+'config.ini');
+  try
+    for i:=1 to 8 do
+    begin
+      ini.WriteString('Szablon', 'img'+IntToStr(i), tab[i].FileName);
+    end;
+    ini.WriteInteger('Form', 'Left'  , Left);
+    ini.WriteInteger('Form', 'Top'   , Top);
+    ini.WriteInteger('Form', 'Width' , Width);
+    ini.WriteInteger('Form', 'Height', Height);
+  finally
+    FreeAndNil(ini);
+  end;
 end;
 
 procedure TForm1.ImgViewDblClick(Sender: TObject);
@@ -130,6 +170,7 @@ begin
     TImgView32(Sender).Bitmap.LoadFromFile(OpenPictureDialog1.FileName);
     lblFileEdit.Caption:= OpenPictureDialog1.FileName;
     EditFileName:= OpenPictureDialog1.FileName;
+    btnDodajDoSzablonu.Enabled:= false;
   end;
 end;
 
@@ -178,27 +219,40 @@ begin
   end;
 end;
 
-procedure TForm1.BCButton2Click(Sender: TObject);
+procedure TForm1.btnWytnijClick(Sender: TObject);
 begin
   Wytnij;
 end;
 
-procedure TForm1.BCButton1Click(Sender: TObject);
+procedure TForm1.btnDrukujClick(Sender: TObject);
 begin
   Drukuj;
 end;
 
-procedure TForm1.BCButton3Click(Sender: TObject);
+procedure TForm1.btnDodajDoSzablonuClick(Sender: TObject);
+var i: integer;
+begin
+  for i:=1 to 8 do
+  begin
+    if tab[i].FileName='' then
+    begin
+      TabDodaj(i, EditFileName);
+      Break;
+    end;
+  end;
+end;
+
+procedure TForm1.btnZapiszJakoClick(Sender: TObject);
 begin
   ZapiszJako;
 end;
 
-procedure TForm1.BCButton5Click(Sender: TObject);
+procedure TForm1.btnZaznaczClick(Sender: TObject);
 begin
   ZaznaczCrop;
 end;
 
-procedure TForm1.BCButton6Click(Sender: TObject);
+procedure TForm1.btnEdycjaSzablonuClick(Sender: TObject);
 var i: integer;
 begin
   frReport1.LoadFromFile('szablon.lrf');
@@ -222,8 +276,7 @@ procedure TForm1.Img_1DblClick(Sender: TObject);
 begin
   if OpenPictureDialog1.Execute then
   begin
-    TImage32(Sender).Bitmap.LoadFromFile(OpenPictureDialog1.FileName);
-    tab[TImage32(Sender).Tag].FileName:= OpenPictureDialog1.FileName;
+    TabDodaj(TImage32(Sender).Tag, OpenPictureDialog1.FileName);
   end;
 end;
 
@@ -261,6 +314,8 @@ begin
     Inc(TileY, TileHeight);
   end;
 
+
+  if TImage32(Sender).Bitmap.Empty then
   with Buffer do
   begin
     R:= ClipRect;
@@ -271,28 +326,63 @@ begin
   end;
 end;
 
-procedure TForm1.MenuItem1Click(Sender: TObject);
+procedure TForm1.miClearAllClick(Sender: TObject);
+var i: integer;
+begin
+  for i:=1 to 8 do
+  begin
+    TabDodaj(i, '');
+  end;
+end;
+
+procedure TForm1.miClearClick(Sender: TObject);
 var img: TImage32;
 begin
   img:= TImage32(((Sender as TMenuItem).GetParentMenu as TPopupMenu).PopupComponent);
-  img.Bitmap.SetSize(0,0);
-  img.Bitmap.Clear;
+  TabDodaj(img.Tag, '');
 end;
 
-procedure TForm1.MenuItem2Click(Sender: TObject);
+procedure TForm1.miLoadSzablonClick(Sender: TObject);
 begin
   Img_1DblClick(TImage32(((Sender as TMenuItem).GetParentMenu as TPopupMenu).PopupComponent));
+end;
+
+procedure TForm1.TabDodaj(vIndex: integer; vFile: string);
+begin
+  if vFile<>'' then
+    begin
+      tab[vIndex].img.Bitmap.LoadFromFile(vFile);
+      tab[vIndex].FileName:= vFile;
+      tab[vIndex].img.Hint:= vFile;
+    end
+  else
+    if tab[vIndex].FileName<>'' then
+    begin
+      tab[vIndex].img.Bitmap.SetSize(0,0);
+      tab[vIndex].img.Bitmap.Clear;
+      tab[vIndex].FileName:= '';
+      tab[vIndex].img.Hint:= 'Brak';
+    end;
 end;
 
 procedure TForm1.ZaznaczCrop;
 var
   L: TRubberbandLayer;// PositionedLayer;
   P: TPoint;
+  W,H: Single;
 begin
-  if CropLayer<>nil then FreeAndNil(CropLayer);
+  if CropLayer<>nil then
+  begin
+    FreeAndNil(CropLayer);
+    ImgView.Layers.Clear;
+    exit;
+  end;
   // get coordinates of the center of viewport
   with ImgView.GetViewportRect do
     P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
+
+  H:= ImgView.Bitmap.Height / 4;
+  W:= H * 35/45;
 
   L:= TRubberbandLayer.Create(ImgView.Layers);
   L.ChildLayer  := nil;
@@ -302,7 +392,7 @@ begin
   L.MaxHeight   := ImgView.Bitmap.Height;
   L.MaxWidth    := ImgView.Bitmap.Width;
   L.Options     := [roProportional];
-  L.Location    := FloatRect(P.X - 35, P.Y - 45, P.X + 35, P.Y + 45);
+  L.Location    := FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
   L.Scaled      := true;
   L.MouseEvents := true;
   //L.OnMouseDown := @LayerMouseDown;
@@ -347,6 +437,10 @@ begin
     jpg.CompressionQuality := 96;
     jpg.SaveToFile(SaveDialog1.FileName);
     FreeAndNil(jpg);
+
+    EditFileName:= SaveDialog1.FileName;
+    lblFileEdit.Caption:= EditFileName;
+    btnDodajDoSzablonu.Enabled:= true;
   end;
 end;
 
