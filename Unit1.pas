@@ -7,8 +7,8 @@ interface
 uses
   Classes, SysUtils, FileUtil, LR_Class, LR_Desgn, BCPanel, BCButton,
   GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus, ExtDlgs,
-  Buttons, StdCtrls, ComCtrls, IniPropStorage, GR32, GR32_Text_LCL_Win,
-  ShellApi, GR32_Layers, GR32_Blend, IniFiles;
+  Buttons, StdCtrls, ComCtrls, GR32, GR32_Text_LCL_Win,
+  ShellApi, GR32_Layers, GR32_Blend, IniFiles, GR32_Resamplers;
 
 type
 
@@ -20,10 +20,12 @@ type
     btnDodajDoSzablonu: TBCButton;
     btnWczytajFoto: TBCButton;
     btnZapiszJako: TBCButton;
+    btnZapiszDoOTIS: TBCButton;
     btnZaznacz: TBCButton;
     btnEdycjaSzablonu: TBCButton;
     BCPanel1: TBCPanel;
     BCPanel2: TBCPanel;
+    edIDO: TEdit;
     frDesigner1: TfrDesigner;
     frReport1: TfrReport;
     Img_1: TImage32;
@@ -55,8 +57,10 @@ type
     procedure btnDrukujClick(Sender: TObject);
     procedure btnWytnijClick(Sender: TObject);
     procedure btnZapiszJakoClick(Sender: TObject);
+    procedure btnZapiszDoOTISClick(Sender: TObject);
     procedure btnZaznaczClick(Sender: TObject);
     procedure btnEdycjaSzablonuClick(Sender: TObject);
+    procedure edIDOChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
@@ -71,11 +75,14 @@ type
     procedure miLoadSzablonClick(Sender: TObject);
   private
     CropLayer: TRubberbandLayer;
-    EditFileName: string;
+    PathEditFileName: string;
+    PathFotoOTIS    : string;
     tab: array[1..8] of record
                           img: TImage32;
                           FileName: string;
                         end;
+    procedure ResizeFoto(InputPicture: TBitmap32; OutputImage: TBitmap; const DstWidth, DstHeigth: Integer);
+    procedure SetHighQualityStretchFilter(B: TBitmap32);
     procedure TabDodaj(vIndex: integer; vFile: string);
     procedure HighlightCropRect(Bmp32: TBitmap32; CropRect: TRect);
     procedure LayerResizing(Sender: TObject; const OldLocation: TFloatRect;
@@ -83,8 +90,8 @@ type
     procedure PaintCropHandler(Sender: TObject; Buffer: TBitmap32);
     procedure ZaznaczCrop;
     procedure Wytnij;
-    procedure ZapiszJako;
     procedure Drukuj;
+    procedure WczytajZdjecie(FileName: string);
   public
 
   end;
@@ -117,8 +124,9 @@ begin
     tab[i].img.PaintStages[0]^.Stage:= PST_CUSTOM;
     tab[i].FileName:= '';
     tab[i].img.Hint:= 'Brak';
-    DragAcceptFiles(tab[i].img.Handle, True);
+    //DragAcceptFiles(tab[i].img.Handle, True);
   end;
+  DragAcceptFiles(ImgView.Handle, True);
 
   with ImgView.PaintStages[0]^ do
   begin
@@ -136,6 +144,8 @@ begin
     Top   := ini.ReadInteger('Form', 'Top'   , Top);
     Width := ini.ReadInteger('Form', 'Width' , Width);
     Height:= ini.ReadInteger('Form', 'Height', Height);
+
+    PathFotoOTIS:= ini.ReadString('Config','PathFotoOTIS', 'W:\Paczkownia\ZK Foto');
   finally
     FreeAndNil(ini);
   end;
@@ -158,19 +168,30 @@ begin
     ini.WriteInteger('Form', 'Top'   , Top);
     ini.WriteInteger('Form', 'Width' , Width);
     ini.WriteInteger('Form', 'Height', Height);
+
+    ini.WriteString('Config','PathFOTOOTIS', PathFotoOTIS);
   finally
     FreeAndNil(ini);
   end;
 end;
 
+procedure TForm1.WczytajZdjecie(FileName: string);
+begin
+  ImgView.Bitmap.LoadFromFile(FileName);
+  lblFileEdit.Caption      := FileName;
+  PathEditFileName         := FileName;
+
+  btnDodajDoSzablonu.Enabled:= false;
+  btnZapiszJako.Enabled     := true;
+  btnZaznacz.Enabled        := true;
+  btnWytnij.Enabled         := true;
+end;
+
 procedure TForm1.ImgViewDblClick(Sender: TObject);
 begin
-  if not OpenPictureDialog1.Execute then exit;
-  if FileExists(OpenPictureDialog1.FileName) then begin
-    TImgView32(Sender).Bitmap.LoadFromFile(OpenPictureDialog1.FileName);
-    lblFileEdit.Caption:= OpenPictureDialog1.FileName;
-    EditFileName:= OpenPictureDialog1.FileName;
-    btnDodajDoSzablonu.Enabled:= false;
+  if OpenPictureDialog1.Execute then
+  begin
+    WczytajZdjecie(OpenPictureDialog1.FileName);
   end;
 end;
 
@@ -236,15 +257,65 @@ begin
   begin
     if tab[i].FileName='' then
     begin
-      TabDodaj(i, EditFileName);
+      TabDodaj(i, PathEditFileName);
       Break;
     end;
   end;
 end;
 
 procedure TForm1.btnZapiszJakoClick(Sender: TObject);
+var jpg: TJPEGImage;
 begin
-  ZapiszJako;
+  SaveDialog1.InitialDir:= ExtractFilePath(PathEditFileName);
+  SaveDialog1.FileName  := ExtractFileName(PathEditFileName);
+  if SaveDialog1.Execute then
+  begin
+    //ImgView.Bitmap.SaveToFile(SaveDialog1.FileName);
+    jpg:= TJPEGImage.Create;
+    jpg.SetSize(ImgView.Bitmap.Width, ImgView.Bitmap.Height);
+    jpg.Canvas.CopyRect(Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height), ImgView.Bitmap.Canvas, Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height));
+    jpg.CompressionQuality := 96;
+    jpg.SaveToFile(SaveDialog1.FileName);
+    FreeAndNil(jpg);
+
+    PathEditFileName:= SaveDialog1.FileName;
+    lblFileEdit.Caption:= PathEditFileName;
+    btnDodajDoSzablonu.Enabled:= true;
+  end;
+end;
+
+procedure TForm1.btnZapiszDoOTISClick(Sender: TObject);
+var jpg: TJPEGImage;
+    tmp: TBitmap;
+    W,H: integer;
+    scale: single;
+begin
+  if edIDO.Text='' then exit;
+  SaveDialog1.InitialDir:= PathFotoOTIS;
+  SaveDialog1.FileName:= edIDO.Text+'.jpg';
+  if SaveDialog1.Execute then
+  begin
+    tmp:= TBitmap.Create;
+    if ImgView.Bitmap.Height> 800 then
+    begin
+      scale:= 800 / ImgView.Bitmap.Height;
+      H:= 800;
+      W:= Round( ImgView.Bitmap.Width * scale );
+      ResizeFoto(ImgView.Bitmap, tmp, W, H);
+    end else
+    begin
+      tmp.Assign(ImgView.Bitmap);
+    end;
+
+    jpg:= TJPEGImage.Create;
+    jpg.SetSize(tmp.Width, tmp.Height); //jpg.SetSize(ImgView.Bitmap.Width, ImgView.Bitmap.Height);
+    jpg.Canvas.CopyRect(tmp.Canvas.ClipRect, tmp.Canvas, tmp.Canvas.ClipRect);  //jpg.Canvas.CopyRect(Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height), ImgView.Bitmap.Canvas, Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height));
+    jpg.CompressionQuality := 96;
+    jpg.SaveToFile(SaveDialog1.FileName);
+
+    FreeAndNil(jpg);
+    FreeAndNil(tmp);
+  end;
 end;
 
 procedure TForm1.btnZaznaczClick(Sender: TObject);
@@ -266,10 +337,14 @@ begin
   frReport1.DesignReport;
 end;
 
+procedure TForm1.edIDOChange(Sender: TObject);
+begin
+  btnZapiszDoOTIS.Enabled:= (edIDO.Text<>'')and(PathEditFileName<>'');
+end;
+
 procedure TForm1.FormDropFiles(Sender: TObject; const FileNames: array of String);
 begin
-  ShowMessage(Sender.ClassName);
-  tab[1].img.Bitmap.LoadFromFile(FileNames[0]); // TODO: do jakiego komponentu ma wczytać zdjęcie
+  WczytajZdjecie(FileNames[0]);
 end;
 
 procedure TForm1.Img_1DblClick(Sender: TObject);
@@ -424,26 +499,6 @@ begin
   img.DrawTo(ImgView.Bitmap);
 end;
 
-procedure TForm1.ZapiszJako;
-var jpg: TJPEGImage;
-begin
-  SaveDialog1.FileName:= EditFileName;
-  if SaveDialog1.Execute then
-  begin
-    //ImgView.Bitmap.SaveToFile(SaveDialog1.FileName);
-    jpg:= TJPEGImage.Create;
-    jpg.SetSize(ImgView.Bitmap.Width, ImgView.Bitmap.Height);
-    jpg.Canvas.CopyRect(Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height), ImgView.Bitmap.Canvas, Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height));
-    jpg.CompressionQuality := 96;
-    jpg.SaveToFile(SaveDialog1.FileName);
-    FreeAndNil(jpg);
-
-    EditFileName:= SaveDialog1.FileName;
-    lblFileEdit.Caption:= EditFileName;
-    btnDodajDoSzablonu.Enabled:= true;
-  end;
-end;
-
 procedure TForm1.Drukuj;
 var i: integer;
 begin
@@ -473,7 +528,7 @@ begin
 
   // Iterate over all pixels
   // (We need to do a typecast here because we can't compare pointers in Delphi)
-  while Integer(Ptr) < Integer(LastPtr) do
+  while Ptr < LastPtr do
   begin
     // Check if pixel is outside of crop rect
     if (X < CropRect.Left) or (X > CropRect.Right) or
@@ -534,6 +589,49 @@ begin
       HighlightCropRect(Buffer, R);
       Buffer.Changed;
     end;
+end;
+
+procedure TForm1.SetHighQualityStretchFilter(B: TBitmap32);
+var
+  KR: TKernelResampler;
+begin
+  if not (B.Resampler is TKernelResampler) then
+  begin
+    KR := TKernelResampler.Create(B);
+    KR.Kernel := TLanczosKernel.Create;
+  end
+  else
+  begin
+    KR := B.Resampler as TKernelResampler;
+    if not (KR.Kernel is TLanczosKernel) then
+    begin
+      KR.Kernel.Free;
+      KR.Kernel := TLanczosKernel.Create;
+    end;
+  end;
+end;
+
+procedure TForm1.ResizeFoto(InputPicture: TBitmap32; OutputImage: TBitmap;
+  const DstWidth, DstHeigth: Integer);
+var
+  Src, Dst: TBitmap32;
+begin
+  Dst := nil;
+  try
+    Src := TBitmap32.Create;
+    try
+      Src.Assign(InputPicture);
+      SetHighQualityStretchFilter(Src);
+      Dst := TBitmap32.Create;
+      Dst.SetSize(DstWidth, DstHeigth);
+      Src.DrawTo(Dst, Rect(0, 0, DstWidth, DstHeigth), Rect(0, 0, Src.Width, Src.Height));
+    finally
+      FreeAndNil(Src);
+    end;
+    OutputImage.Assign(Dst);
+  finally
+    FreeAndNil(Dst);
+  end;
 end;
 
 end.
