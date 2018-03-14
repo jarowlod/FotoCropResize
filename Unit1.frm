@@ -1,21 +1,23 @@
 object Form1: TForm1
-  Left = 394
-  Height = 656
-  Top = 225
-  Width = 742
+  Left = 389
+  Height = 671
+  Top = 232
+  Width = 810
   AllowDropFiles = True
-  Caption = 'FotoCropResize'
-  ClientHeight = 656
-  ClientWidth = 742
+  Caption = 'FotoCropResize v2.1'
+  ClientHeight = 671
+  ClientWidth = 810
+  Constraints.MinHeight = 650
+  Constraints.MinWidth = 700
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnDropFiles = FormDropFiles
   LCLVersion = '6.3'
   object ImgView: TImgView32
     Left = 0
-    Height = 424
+    Height = 439
     Top = 232
-    Width = 628
+    Width = 696
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCenter
@@ -37,8 +39,8 @@ object Form1: TForm1
     OnPaintStage = ImgViewPaintStage
   end
   object BCPanel2: TBCPanel
-    Left = 628
-    Height = 424
+    Left = 696
+    Height = 439
     Top = 232
     Width = 114
     Align = alRight
@@ -1350,7 +1352,7 @@ object Form1: TForm1
     Left = 0
     Height = 232
     Top = 0
-    Width = 742
+    Width = 810
     Align = alTop
     Background.Color = clBtnFace
     Background.ColorOpacity = 255
@@ -1881,11 +1883,11 @@ object Form1: TForm1
       Left = 0
       Height = 22
       Top = 210
-      Width = 742
+      Width = 810
       Align = alBottom
       BevelOuter = bvNone
       ClientHeight = 22
-      ClientWidth = 742
+      ClientWidth = 810
       Color = 16755285
       ParentColor = False
       TabOrder = 8
@@ -2076,6 +2078,53 @@ object Form1: TForm1
       RoundingDropDown.RoundOptions = []
       TextApplyGlobalOpacity = False
       MemoryUsage = bmuHigh
+    end
+    object BGRALabel1: TBGRALabel
+      Left = 655
+      Height = 48
+      Top = 0
+      Width = 155
+      AutoSize = False
+      Anchors = [akTop, akRight]
+      Background.Color = clBtnFace
+      Background.Gradient1.StartColor = clWhite
+      Background.Gradient1.StartColorOpacity = 255
+      Background.Gradient1.DrawMode = dmSet
+      Background.Gradient1.EndColor = clBlack
+      Background.Gradient1.EndColorOpacity = 255
+      Background.Gradient1.ColorCorrection = True
+      Background.Gradient1.GradientType = gtLinear
+      Background.Gradient1.Point1XPercent = 0
+      Background.Gradient1.Point1YPercent = 0
+      Background.Gradient1.Point2XPercent = 0
+      Background.Gradient1.Point2YPercent = 100
+      Background.Gradient1.Sinus = False
+      Background.Gradient2.StartColor = clWhite
+      Background.Gradient2.StartColorOpacity = 255
+      Background.Gradient2.DrawMode = dmSet
+      Background.Gradient2.EndColor = clBlack
+      Background.Gradient2.EndColorOpacity = 255
+      Background.Gradient2.ColorCorrection = True
+      Background.Gradient2.GradientType = gtLinear
+      Background.Gradient2.Point1XPercent = 0
+      Background.Gradient2.Point1YPercent = 0
+      Background.Gradient2.Point2XPercent = 0
+      Background.Gradient2.Point2YPercent = 100
+      Background.Gradient2.Sinus = False
+      Background.Gradient1EndPercent = 35
+      Background.LightWidth = 0
+      Background.LightOpacity = 64
+      Caption = 'Jarosław Włodarczyk'#13#10'v. 2.1'
+      ParentColor = False
+      TextAlign = btaRight
+      TextShadowColorOpacity = 255
+      TextShadowOffsetX = 2
+      TextShadowOffsetY = 2
+      TextShadowRadius = 3
+      GlobalOpacity = 255
+      TextApplyGlobalOpacity = False
+      WordWrap = True
+      Font.Color = clWhite
     end
   end
   object PopupMenu1: TPopupMenu

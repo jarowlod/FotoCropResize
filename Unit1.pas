@@ -5,16 +5,17 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, LR_Class, LR_Desgn, BCPanel, BCButton,
-  GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus, ExtDlgs,
-  Buttons, StdCtrls, ComCtrls, GR32, GR32_Text_LCL_Win,
-  ShellApi, GR32_Layers, GR32_Blend, IniFiles, GR32_Resamplers;
+  Classes, SysUtils, FileUtil, LR_Class, LR_Desgn, BCPanel, BCButton, BGRALabel,
+  GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus,
+  ExtDlgs, Buttons, StdCtrls, ComCtrls, GR32, GR32_Text_LCL_Win, ShellApi,
+  GR32_Layers, GR32_Blend, IniFiles, GR32_Resamplers;
 
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
+    BGRALabel1: TBGRALabel;
     btnDrukuj: TBCButton;
     btnWytnij: TBCButton;
     btnDodajDoSzablonu: TBCButton;
@@ -103,7 +104,7 @@ var
   Form1: TForm1;
 
 implementation
-
+uses Unit2;
 {$R *.frm}
 
 { TForm1 }
@@ -311,13 +312,17 @@ begin
       tmp.Assign(ImgView.Bitmap);
     end;
 
-    // TODO: wyświetla okno z porównaniem zdjęć starego z nowym, umożliwia dokonanie wyboru
-
     jpg:= TJPEGImage.Create;
     jpg.SetSize(tmp.Width, tmp.Height);
     jpg.Canvas.CopyRect(tmp.Canvas.ClipRect, tmp.Canvas, tmp.Canvas.ClipRect);
     jpg.CompressionQuality := 96;
-    jpg.SaveToFile(SaveDialog1.FileName);
+
+    // wyświetla okno z porównaniem zdjęć starego z nowym, umożliwia dokonanie wyboru
+    with TForm2.Create(Self) do
+    begin
+      ShowFoto(tmp, SaveDialog1.FileName);
+      if ShowModal = mrOK then jpg.SaveToFile(SaveDialog1.FileName);
+    end;
 
     FreeAndNil(jpg);
     FreeAndNil(tmp);
