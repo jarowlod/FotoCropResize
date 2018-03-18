@@ -1,7 +1,7 @@
 object Form2: TForm2
-  Left = 389
+  Left = 394
   Height = 522
-  Top = 232
+  Top = 225
   Width = 743
   BorderStyle = bsDialog
   Caption = 'Form2'
@@ -71,6 +71,20 @@ object Form2: TForm2
     Rounding.RoundY = 1
     Rounding.RoundOptions = []
     TabOrder = 0
+    object Label1: TLabel
+      Left = 488
+      Height = 41
+      Top = 232
+      Width = 141
+      Caption = '< BRAK >'
+      Font.CharSet = EASTEUROPE_CHARSET
+      Font.Height = -35
+      Font.Name = 'Cambria'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentColor = False
+      ParentFont = False
+    end
     object imgSrc: TImage
       Left = 24
       Height = 400

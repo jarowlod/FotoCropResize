@@ -22,6 +22,7 @@ type
     btnZapiszDoOTIS3: TBCButton;
     imgSrc: TImage;
     imgDes: TImage;
+    Label1: TLabel;
     procedure btnZapiszDoOTIS2Click(Sender: TObject);
     procedure btnZapiszDoOTIS3Click(Sender: TObject);
   private
@@ -52,7 +53,7 @@ end;
 procedure TForm2.ShowFoto(src: TBitmap; desPath: string);
 begin
   imgSrc.Picture.Bitmap.Assign(src);
-  imgDes.Picture.LoadFromFile(desPath);
+  if FileExists(desPath) then imgDes.Picture.LoadFromFile(desPath);
 end;
 
 end.

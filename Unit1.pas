@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, FileUtil, LR_Class, LR_Desgn, BCPanel, BCButton, BGRALabel,
   GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus,
   ExtDlgs, Buttons, StdCtrls, ComCtrls, GR32, GR32_Text_LCL_Win, ShellApi,
-  GR32_Layers, GR32_Blend, IniFiles, GR32_Resamplers;
+  GR32_Layers, GR32_Blend, IniFiles, GR32_Resamplers, XGR32_FloodFill, XGR32_Bmp32Func;
 
 type
 
@@ -17,6 +17,9 @@ type
   TForm1 = class(TForm)
     BGRALabel1: TBGRALabel;
     btnDrukuj: TBCButton;
+    btnFloodFill: TBCButton;
+    btnFloodFill_Zatwierdz: TBCButton;
+    btnFloodFill_Anuluj: TBCButton;
     btnWytnij: TBCButton;
     btnDodajDoSzablonu: TBCButton;
     btnWczytajFoto: TBCButton;
@@ -26,6 +29,7 @@ type
     btnEdycjaSzablonu: TBCButton;
     BCPanel1: TBCPanel;
     BCPanel2: TBCPanel;
+    ColorButton1: TColorButton;
     edIDO: TEdit;
     frDesigner1: TfrDesigner;
     frReport1: TfrReport;
@@ -38,12 +42,17 @@ type
     Img_6: TImage32;
     Img_7: TImage32;
     Img_8: TImage32;
+    Label1: TLabel;
+    Label2: TLabel;
     lblFileEdit: TLabel;
+    lblFileEdit2: TLabel;
     miClear: TMenuItem;
     miLoadSzablon: TMenuItem;
     miClearAll: TMenuItem;
     OpenPictureDialog1: TOpenPictureDialog;
     Panel1: TPanel;
+    Panel_FloodFill: TPanel;
+    Panel3: TPanel;
     Panel_8: TPanel;
     Panel_1: TPanel;
     Panel_2: TPanel;
@@ -54,8 +63,13 @@ type
     Panel_7: TPanel;
     PopupMenu1: TPopupMenu;
     SaveDialog1: TSaveDialog;
+    TrackBar1: TTrackBar;
+    TrackBar2: TTrackBar;
     procedure btnDodajDoSzablonuClick(Sender: TObject);
     procedure btnDrukujClick(Sender: TObject);
+    procedure btnFloodFill_ZatwierdzClick(Sender: TObject);
+    procedure btnFloodFill_AnulujClick(Sender: TObject);
+    procedure btnFloodFillClick(Sender: TObject);
     procedure btnWytnijClick(Sender: TObject);
     procedure btnZapiszJakoClick(Sender: TObject);
     procedure btnZapiszDoOTISClick(Sender: TObject);
@@ -66,6 +80,8 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
     procedure ImgViewDblClick(Sender: TObject);
+    procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure Img_1DblClick(Sender: TObject);
@@ -76,6 +92,7 @@ type
     procedure miClearAllClick(Sender: TObject);
     procedure miClearClick(Sender: TObject);
     procedure miLoadSzablonClick(Sender: TObject);
+    procedure TrackBar1Change(Sender: TObject);
   private
     CropLayer: TRubberbandLayer;
     PathEditFileName: string;
@@ -84,6 +101,10 @@ type
                           img: TImage32;
                           FileName: string;
                         end;
+    undo: TBitmap32;
+    isFloodFill: Boolean;
+    savePoint: TPoint;
+
     DropTarget: TObject;
     procedure ResizeFoto(InputPicture: TBitmap32; OutputImage: TBitmap; const DstWidth, DstHeigth: Integer);
     procedure SetHighQualityStretchFilter(B: TBitmap32);
@@ -92,10 +113,12 @@ type
     procedure LayerResizing(Sender: TObject; const OldLocation: TFloatRect;
       var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
     procedure PaintCropHandler(Sender: TObject; Buffer: TBitmap32);
+
     procedure ZaznaczCrop;
     procedure Wytnij;
     procedure Drukuj;
     procedure WczytajZdjecie(FileName: string);
+    procedure FloodFill(imgPoint: TPoint);
   public
 
   end;
@@ -105,6 +128,7 @@ var
 
 implementation
 uses Unit2;
+
 {$R *.frm}
 
 { TForm1 }
@@ -194,8 +218,15 @@ end;
 
 procedure TForm1.ImgViewDblClick(Sender: TObject);
 begin
+  if PathEditFileName<>'' then OpenPictureDialog1.InitialDir:= ExtractFilePath(PathEditFileName);
+  OpenPictureDialog1.FileName:= '';
   if OpenPictureDialog1.Execute then
   begin
+    Panel_FloodFill.Visible:= false;
+    isFloodFill            := false;
+    btnFloodFill.Enabled   := true;
+    FreeAndNil(undo);
+
     WczytajZdjecie(OpenPictureDialog1.FileName);
   end;
 end;
@@ -245,9 +276,46 @@ begin
   end;
 end;
 
+procedure TForm1.Wytnij;
+var cropRect: TRect;
+    img: TBitmap32;
+begin
+  if CropLayer=nil then exit;
+  cropRect:= MakeRect(CropLayer.Location);
+  img:= TBitmap32.Create;
+  img.SetSize(cropRect.Right - cropRect.Left, cropRect.Bottom - cropRect.Top);
+
+  ImgView.Bitmap.DrawTo(img, 0,0, cropRect);
+
+  with ImgView do
+  begin
+    CropLayer := nil;
+    Layers.Clear;
+    Scale := 1;
+    Bitmap.SetSize(img.Width, img.Height);
+    Bitmap.Clear;
+  end;
+
+  img.DrawTo(ImgView.Bitmap);
+end;
+
 procedure TForm1.btnWytnijClick(Sender: TObject);
 begin
   Wytnij;
+end;
+
+procedure TForm1.Drukuj;
+var i: integer;
+begin
+  frReport1.LoadFromFile('szablon.lrf');
+  for i:= 1 to 8 do
+  begin
+    if tab[i].FileName<>'' then
+      (frReport1.FindObject('Picture'+IntToStr(i)) as TfrPictureView).Picture.LoadFromFile(tab[i].FileName)
+    else
+      (frReport1.FindObject('Picture'+IntToStr(i)) as TfrPictureView).Picture.Clear;
+  end;
+  frReport1.ShowReport;
 end;
 
 procedure TForm1.btnDrukujClick(Sender: TObject);
@@ -275,7 +343,6 @@ begin
   SaveDialog1.FileName  := ExtractFileName(PathEditFileName);
   if SaveDialog1.Execute then
   begin
-    //ImgView.Bitmap.SaveToFile(SaveDialog1.FileName);
     jpg:= TJPEGImage.Create;
     jpg.SetSize(ImgView.Bitmap.Width, ImgView.Bitmap.Height);
     jpg.Canvas.CopyRect(Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height), ImgView.Bitmap.Canvas, Rect(0,0,ImgView.Bitmap.Width,ImgView.Bitmap.Height));
@@ -329,11 +396,6 @@ begin
   end;
 end;
 
-procedure TForm1.btnZaznaczClick(Sender: TObject);
-begin
-  ZaznaczCrop;
-end;
-
 procedure TForm1.btnEdycjaSzablonuClick(Sender: TObject);
 var i: integer;
 begin
@@ -353,19 +415,15 @@ begin
   btnZapiszDoOTIS.Enabled:= (edIDO.Text<>'')and(PathEditFileName<>'');
 end;
 
+// ----------------------------------------------------------------------------------------
+//                         Drop Files
+// ----------------------------------------------------------------------------------------
+
 procedure TForm1.FormDropFiles(Sender: TObject; const FileNames: array of String);
 begin
   if not Assigned(DropTarget) then exit;
   if DropTarget is TImage32 then TabDodaj(TImage32(DropTarget).Tag, FileNames[0]);
   if DropTarget is TImgView32 then WczytajZdjecie(FileNames[0]);
-end;
-
-procedure TForm1.Img_1DblClick(Sender: TObject);
-begin
-  if OpenPictureDialog1.Execute then
-  begin
-    TabDodaj(TImage32(Sender).Tag, OpenPictureDialog1.FileName);
-  end;
 end;
 
 procedure TForm1.Img_1MouseEnter(Sender: TObject);
@@ -376,6 +434,18 @@ end;
 procedure TForm1.Img_1MouseLeave(Sender: TObject);
 begin
   DropTarget:= nil;
+end;
+// ---------------------END Drop Files---------------------------------------------------
+
+procedure TForm1.Img_1DblClick(Sender: TObject);
+begin
+  if PathEditFileName<>'' then OpenPictureDialog1.InitialDir:= ExtractFilePath(PathEditFileName);
+  OpenPictureDialog1.FileName:= '';
+
+  if OpenPictureDialog1.Execute then
+  begin
+    TabDodaj(TImage32(Sender).Tag, OpenPictureDialog1.FileName);
+  end;
 end;
 
 procedure TForm1.Img_1PaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
@@ -499,41 +569,9 @@ begin
   CropLayer     := L;
 end;
 
-procedure TForm1.Wytnij;
-var cropRect: TRect;
-    img: TBitmap32;
+procedure TForm1.btnZaznaczClick(Sender: TObject);
 begin
-  if CropLayer=nil then exit;
-  cropRect:= MakeRect(CropLayer.Location);
-  img:= TBitmap32.Create;
-  img.SetSize(cropRect.Right - cropRect.Left, cropRect.Bottom - cropRect.Top);
-
-  ImgView.Bitmap.DrawTo(img, 0,0, cropRect);
-
-  with ImgView do
-  begin
-    CropLayer := nil;
-    Layers.Clear;
-    Scale := 1;
-    Bitmap.SetSize(img.Width, img.Height);
-    Bitmap.Clear;
-  end;
-
-  img.DrawTo(ImgView.Bitmap);
-end;
-
-procedure TForm1.Drukuj;
-var i: integer;
-begin
-  frReport1.LoadFromFile('szablon.lrf');
-  for i:= 1 to 8 do
-  begin
-    if tab[i].FileName<>'' then
-      (frReport1.FindObject('Picture'+IntToStr(i)) as TfrPictureView).Picture.LoadFromFile(tab[i].FileName)
-    else
-      (frReport1.FindObject('Picture'+IntToStr(i)) as TfrPictureView).Picture.Clear;
-  end;
-  frReport1.ShowReport;
+  ZaznaczCrop;
 end;
 
 procedure TForm1.HighlightCropRect(Bmp32: TBitmap32; CropRect: TRect);
@@ -586,6 +624,7 @@ begin
     if (Right > ImgView.Bitmap.Width) then begin
       Left := ImgView.Bitmap.Width - (Right-Left);
       Right:= ImgView.Bitmap.Width;
+      if Left<0 then begin Bottom:= Bottom + (Left*45/35); Left:=0; end;
     end;
 
     if (Top < 0) then begin
@@ -655,6 +694,80 @@ begin
   finally
     FreeAndNil(Dst);
   end;
+end;
+
+// =====================================================================================================================
+//                    FLOOD FILL
+// =====================================================================================================================
+
+procedure TForm1.FloodFill(imgPoint: TPoint);
+var img: TBitmap32;
+begin
+  img:= TBitmap32.Create;
+  img.Assign(ImgView.Bitmap);
+
+  //Bmp32_AutoContrastRBG(ImgView.Bitmap);
+  //Bmp32_Saturation(Img, TrackBar2.Position);
+  //if TrackBar2.Position<>0 then Bmp32_IncDecHSL(img, 0,0, TrackBar2.Position);
+  //Bmp32_StretchIntensity(img, 10, TrackBar2.Position);
+
+  if TrackBar2.Position<>0 then Bmp32_Contrast(img, TrackBar2.Position/100);
+  with TFloodFill.Create do
+  try
+    Tolerance := TrackBar1.Position;
+    Execute(Img, imgPoint, Color32(ColorButton1.ButtonColor));
+
+    ImgView.Bitmap.Assign(img);
+  finally
+    Free;
+    img.Free;
+  end;
+end;
+
+procedure TForm1.ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+begin
+  if isFloodFill then
+  begin
+    savePoint := ImgView.ControlToBitmap(Point(X,Y));
+    FloodFill(savePoint);
+  end;
+end;
+
+procedure TForm1.TrackBar1Change(Sender: TObject);  // TrackBar and Color Change
+begin
+  ImgView.Bitmap.Assign(undo);
+  FloodFill(savePoint);
+end;
+
+procedure TForm1.btnFloodFillClick(Sender: TObject);
+begin
+  if undo<>nil then FreeAndNil(undo);
+  undo:= TBitmap32.Create;
+  undo.Assign(ImgView.Bitmap);
+
+  isFloodFill            := true;
+  Panel_FloodFill.Visible:= true;
+  btnFloodFill.Enabled   := false;
+end;
+
+procedure TForm1.btnFloodFill_ZatwierdzClick(Sender: TObject);
+begin
+  FreeAndNil(undo);
+
+  isFloodFill            := false;
+  Panel_FloodFill.Visible:= false;
+  btnFloodFill.Enabled   := true;
+end;
+
+procedure TForm1.btnFloodFill_AnulujClick(Sender: TObject);
+begin
+  if undo<>nil then ImgView.Bitmap.Assign(undo);
+  ImgView.Refresh;
+
+  isFloodFill            := false;
+  Panel_FloodFill.Visible:= false;
+  btnFloodFill.Enabled   := true;
 end;
 
 end.
