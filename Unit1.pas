@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, LR_Class, LR_Desgn, BCPanel, BCButton, BGRALabel,
-  GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus,
+  GR32_Image, Forms, Controls, Graphics, Dialogs, ExtCtrls, Menus, Clipbrd,
   ExtDlgs, Buttons, StdCtrls, ComCtrls, GR32, GR32_Text_LCL_Win, ShellApi,
   GR32_Layers, GR32_Blend, IniFiles, GR32_Resamplers, XGR32_FloodFill, XGR32_Bmp32Func;
 
@@ -20,6 +20,7 @@ type
     btnFloodFill: TBCButton;
     btnFloodFill_Zatwierdz: TBCButton;
     btnFloodFill_Anuluj: TBCButton;
+    btnPasteFoto: TBCButton;
     btnWytnij: TBCButton;
     btnDodajDoSzablonu: TBCButton;
     btnWczytajFoto: TBCButton;
@@ -70,6 +71,7 @@ type
     procedure btnFloodFill_ZatwierdzClick(Sender: TObject);
     procedure btnFloodFill_AnulujClick(Sender: TObject);
     procedure btnFloodFillClick(Sender: TObject);
+    procedure btnPasteFotoClick(Sender: TObject);
     procedure btnWytnijClick(Sender: TObject);
     procedure btnZapiszJakoClick(Sender: TObject);
     procedure btnZapiszDoOTISClick(Sender: TObject);
@@ -228,6 +230,28 @@ begin
     FreeAndNil(undo);
 
     WczytajZdjecie(OpenPictureDialog1.FileName);
+  end;
+end;
+
+procedure TForm1.btnPasteFotoClick(Sender: TObject);
+begin
+  if Clipboard.HasFormat(CF_BITMAP) then
+  begin
+    ImgView.Bitmap.Assign(Clipboard);
+
+    Panel_FloodFill.Visible:= false;
+    isFloodFill            := false;
+    btnFloodFill.Enabled   := true;
+    FreeAndNil(undo);
+
+    PathEditFileName         := 'ze_schowka.jpg';
+    lblFileEdit.Caption      := PathEditFileName;
+
+    edIDO.Text:= '';
+    btnDodajDoSzablonu.Enabled:= false;
+    btnZapiszJako.Enabled     := true;
+    btnZaznacz.Enabled        := true;
+    btnWytnij.Enabled         := true;
   end;
 end;
 
@@ -711,7 +735,7 @@ begin
   //if TrackBar2.Position<>0 then Bmp32_IncDecHSL(img, 0,0, TrackBar2.Position);
   //Bmp32_StretchIntensity(img, 10, TrackBar2.Position);
 
-  if TrackBar2.Position<>0 then Bmp32_Contrast(img, TrackBar2.Position/100);
+  //if TrackBar2.Position<>0 then Bmp32_Contrast(img, TrackBar2.Position/100);
   with TFloodFill.Create do
   try
     Tolerance := TrackBar1.Position;
